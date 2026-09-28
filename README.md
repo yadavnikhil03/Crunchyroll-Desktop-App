@@ -1,18 +1,28 @@
-# Crunchyroll Desktop App
+<h1 align="center">Crunchyroll Desktop App</h1>
 
-A lightweight desktop client for Crunchyroll, built with Electron and the CastLabs Widevine runtime.
+<p align="center">
+  A lightweight desktop client for Crunchyroll, built with Electron and the CastLabs Widevine runtime.
+</p>
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/7d9d4a12-8439-44d4-b7ef-f9bf0b6166de"
+    alt="Crunchyroll Desktop App"
+    width="100%"
+  />
+</p>
 
 ## Features
 
 - **Widevine DRM playback** — Full catalogue support via the CastLabs Electron runtime with production VMP signing.
-- **Discord Rich Presence** — Reads the page's structured metadata to show the series, season and episode you are watching, with a live playback progress bar and a paused indicator.
-- **Hardware acceleration toggle** — Disable it to screen share without a black window, enable it for smoother playback. The app restarts to apply the change at the system level.
-- **Session restore** — Reopens on the page you left off, and remembers window size, position and maximised state.
-- **Custom title bar** — Frameless window with its own controls, hidden automatically during fullscreen playback.
-- **Settings sidebar** — Slide-in panel, closable with `Escape` or by clicking outside.
-- **Navigation shortcuts** — `Alt + Left` / `Alt + Right` to move through history, mouse back/forward buttons, `F5` or `Ctrl + R` to reload.
+- **Discord Rich Presence** — Shows the series, season and episode you're watching, along with playback progress and pause status.
+- **Hardware acceleration toggle** — Disable it for screen sharing or enable it for smoother playback. Requires a restart to apply.
+- **Session restore** — Restores your last page and remembers window size, position and maximised state.
+- **Custom title bar** — Frameless window with custom controls, hidden during fullscreen playback.
+- **Settings sidebar** — Slide-in settings panel, closable with `Escape` or by clicking outside.
+- **Navigation shortcuts** — `Alt + Left` / `Alt + Right` for history, mouse back/forward buttons, and `F5` / `Ctrl + R` to reload.
 - **Error recovery** — Failed page loads and renderer crashes show a retry prompt instead of a blank window.
-- **Domain allowlist** — Navigation and popups are restricted to Crunchyroll and its sign-in providers, enforced in the main process.
+- **Domain allowlist** — Navigation and popups are restricted to Crunchyroll and its required sign-in providers.
 
 ## Tech Stack
 
@@ -27,35 +37,11 @@ Download the latest installer from the [Releases](https://github.com/yadavnikhil
 
 ## Build From Source
 
-Requires Node.js, Python, and a free [CastLabs EVS account](https://github.com/castlabs/electron-releases/wiki/EVS) for Widevine VMP signing.
+Requires Node.js, Python, and a free [CastLabs EVS account](https://github.com/castlabs/electron-releases/wiki/EVS).
 
-```
+```bash
 npm install
 npm run build
 npx electron-builder --win
 python -m castlabs_evs.vmp sign-pkg release\win-unpacked
 npx electron-builder --win --prepackaged release\win-unpacked
-```
-
-The signing step is required. Unsigned builds load the Widevine CDM but cannot complete a licence request, so playback stalls before the first frame.
-
-For development, `npm run dev` rebuilds the renderer on change and launches the app. DRM playback does not work in this mode.
-
-## Configuration
-
-`config.json` in the project root controls the window defaults, the Discord application ID, and the navigation allowlist.
-
-User settings — hardware acceleration, window geometry and the last visited page — are stored in `%APPDATA%/Crunchyroll-Desktop-App/settings.json`.
-
-## Disclaimer
-
-This is an unofficial client and is not affiliated with, endorsed by, or sponsored by Crunchyroll. A valid Crunchyroll account is required; the application does not provide or bypass access to any content.
-
-## License
-
-MIT
-
----
-
-Originally created by Zyhloh.
-Maintained by [Nikhil Yadav](https://github.com/yadavnikhil03).
