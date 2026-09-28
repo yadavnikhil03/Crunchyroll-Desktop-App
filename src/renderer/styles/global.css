@@ -11,7 +11,7 @@
   --color-cr-border: #2a2a2a;
   --color-cr-text: #e0e0e0;
   --color-cr-muted: #888888;
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -27,7 +27,7 @@ body,
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-sans);
   background: #0f0f0f;
   -webkit-font-smoothing: antialiased;
 }
