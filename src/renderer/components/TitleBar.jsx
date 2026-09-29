@@ -7,9 +7,8 @@ const styles = {
     justifyContent: "space-between",
     height: 48,
     flexShrink: 0,
-    background: "#0c0c0c",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+    background: "var(--color-chrome)",
+    boxShadow: "inset 0 -0.5px 0 rgb(255 255 255 / 0.06)",
     WebkitAppRegion: "drag",
     userSelect: "none",
     position: "relative",
@@ -40,9 +39,8 @@ const styles = {
   brand: {
     fontFamily: "var(--font-sans)",
     fontSize: 13,
-    fontWeight: 600,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
+    fontWeight: 590,
+    letterSpacing: "0.01em",
     background: "linear-gradient(90deg, #F47521 0%, #ff9c5a 100%)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
@@ -52,9 +50,8 @@ const styles = {
     fontFamily: "var(--font-sans)",
     fontSize: 12,
     fontWeight: 500,
-    letterSpacing: "0.08em",
-    color: "#777",
-    textTransform: "uppercase",
+    letterSpacing: "0.02em",
+    color: "var(--color-secondary)",
   },
   button: (round) => ({
     display: "flex",
@@ -62,25 +59,25 @@ const styles = {
     justifyContent: "center",
     width: 32,
     height: 32,
-    borderRadius: round ? "50%" : 8,
+    borderRadius: round ? "50%" : "var(--radius-control)",
     background: "transparent",
     border: "none",
-    color: "#888",
+    color: "var(--color-secondary)",
     cursor: "pointer",
-    transition: "all 0.2s ease",
+    transition: "background 200ms ease, color 200ms ease, box-shadow 200ms ease",
   }),
 };
 
 const neutralHover = {
   onMouseEnter: (e) =>
     Object.assign(e.currentTarget.style, {
-      background: "rgba(255, 255, 255, 0.08)",
+      background: "var(--color-fill-hover)",
       color: "#fff",
     }),
   onMouseLeave: (e) =>
     Object.assign(e.currentTarget.style, {
       background: "transparent",
-      color: "#888",
+      color: "var(--color-secondary)",
     }),
 };
 
@@ -89,12 +86,12 @@ const dangerHover = {
     Object.assign(e.currentTarget.style, {
       background: "#e81123",
       color: "#fff",
-      boxShadow: "0 0 10px rgba(232, 17, 35, 0.4)",
+      boxShadow: "0 2px 8px rgba(232, 17, 35, 0.4)",
     }),
   onMouseLeave: (e) =>
     Object.assign(e.currentTarget.style, {
       background: "transparent",
-      color: "#888",
+      color: "var(--color-secondary)",
       boxShadow: "none",
     }),
 };

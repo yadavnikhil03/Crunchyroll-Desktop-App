@@ -9,6 +9,7 @@
     "start": "electron .",
     "build": "webpack --config webpack.config.js",
     "dev": "concurrently \"webpack --config webpack.config.js --watch\" \"wait-on dist/renderer/index.html && electron .\"",
+    "sign-electron": "node scripts/sign-vmp.js node_modules/electron/dist",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -25,6 +26,10 @@
       "config.json"
     ],
     "electronDist": "node_modules/electron/dist",
+    "electronDownload": {
+      "mirror": "https://github.com/castlabs/electron-releases/releases/download/v"
+    },
+    "afterPack": "scripts/afterPack.js",
     "win": {
       "target": [
         "nsis"
@@ -33,7 +38,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true
     }
   },
   "dependencies": {
@@ -48,7 +54,7 @@
     "babel-loader": "^10.0.0",
     "concurrently": "^9.2.1",
     "css-loader": "^7.1.4",
-    "electron": "github:castlabs/electron-releases#v40.1.0+wvcus",
+    "electron": "github:castlabs/electron-releases#v44.1.0+wvcus",
     "electron-builder": "^26.8.1",
     "html-webpack-plugin": "^5.6.6",
     "mini-css-extract-plugin": "^2.10.0",
@@ -62,6 +68,8 @@
     "webpack-cli": "^6.0.1"
   },
   "allowScripts": {
+    "github:castlabs/electron-releases#v44.1.0+wvcus": true,
+    "github:castlabs/electron-releases#bbb3862120430db6fa3ffa1ce22c3b66fe99e0b8": true,
     "github:castlabs/electron-releases#v40.1.0+wvcus": true,
     "github:castlabs/electron-releases#df5ab90dfbe29baf286913cd0c3488c2c133b8e7": true,
     "electron-winstaller@5.4.0": true

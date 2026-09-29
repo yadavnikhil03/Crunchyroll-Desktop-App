@@ -5,14 +5,17 @@ const {
   ipcMain,
   shell,
   screen,
+  session,
   components,
 } = require("electron");
 const path = require("path");
-const { config, isDomainAllowed } = require("./config");
+const { config, isDomainAllowed, isInternalNavigation } = require("./config");
 const settings = require("./settings");
 const discord = require("./discord");
 
 const BOUNDS_SAVE_DELAY = 400;
+const CR_PARTITION = "persist:crunchyroll";
+const DRM_PERMISSIONS = new Set(["media", "mediaKeySystem", "fullscreen"]);
 const BLOCKED_PERMISSIONS = new Set([
   "geolocation",
   "notifications",
@@ -32,9 +35,15 @@ let appWebContents = null;
 let boundsTimer = null;
 let isQuitting = false;
 let settingsOpen = false;
-let isLoading = true;
+let isLoading = false;
 
-app.disableHardwareAcceleration();
+
+const hardwareAccelEnabled = settings.get("hardwareAcceleration", config.hardwareAcceleration);
+if (!hardwareAccelEnabled) {
+  app.disableHardwareAcceleration();
+}
+
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -53,18 +62,18 @@ function send(channel, ...args) {
 function updateViewBounds() {
   if (!mainWindow || mainWindow.isDestroyed() || !webContentsView) return;
 
-  if (isLoading) {
-    webContentsView.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-    return;
-  }
-
   const bounds = mainWindow.getContentBounds();
   const isFullScreen = mainWindow.isFullScreen();
   const y = isFullScreen ? 0 : 48;
-  const height = bounds.height - y;
-  const width = bounds.width - (settingsOpen ? 380 : 0);
+  const height = Math.max(0, bounds.height - y);
+  const width = Math.max(0, bounds.width - (settingsOpen ? 380 : 0));
 
+  // Keep a real viewport even while the splash is showing. A 0x0 surface
+  // prevents Widevine from initializing when a watch page is restored.
   webContentsView.setBounds({ x: 0, y, width, height });
+  if (typeof webContentsView.setVisible === "function") {
+    webContentsView.setVisible(!isLoading);
+  }
 }
 
 function restoreBounds() {
@@ -103,6 +112,51 @@ function restoreBounds() {
   }
 
   return bounds;
+}
+
+
+function allowDrmPermission(permission) {
+  if (DRM_PERMISSIONS.has(permission)) return true;
+  return !BLOCKED_PERMISSIONS.has(permission);
+}
+
+function configureCrunchyrollSession(ses) {
+  ses.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(allowDrmPermission(permission));
+  });
+  ses.setPermissionCheckHandler((_wc, permission) =>
+    allowDrmPermission(permission),
+  );
+}
+
+async function ensureWidevine() {
+  if (!components || typeof components.whenReady !== "function") {
+    console.error(
+      "Widevine components API is missing. Install the CastLabs Electron build.",
+    );
+    return;
+  }
+
+  try {
+    const required = components.WIDEVINE_CDM_ID
+      ? [components.WIDEVINE_CDM_ID]
+      : undefined;
+    await components.whenReady(required);
+  } catch (err) {
+    console.error("Widevine CDM failed to install:", err);
+  }
+
+  try {
+    const status = components.status?.();
+    const cdm = status?.[components.WIDEVINE_CDM_ID];
+    if (cdm && !cdm.version) {
+      console.error("Widevine CDM is registered but has no version installed.");
+    } else if (status) {
+      console.log("Widevine components ready:", status);
+    }
+  } catch (err) {
+    console.error("Unable to read Widevine status:", err);
+  }
 }
 
 function saveBounds() {
@@ -155,7 +209,8 @@ function createWindow() {
 
   webContentsView = new WebContentsView({
     webPreferences: {
-      partition: "persist:crunchyroll",
+      partition: CR_PARTITION,
+      preload: path.join(__dirname, "crunchyroll-preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -202,11 +257,7 @@ function createWindow() {
     }
   });
 
-  appWebContents.session.setPermissionRequestHandler(
-    (_wc, permission, callback) => {
-      callback(!BLOCKED_PERMISSIONS.has(permission));
-    },
-  );
+  configureCrunchyrollSession(appWebContents.session);
 
   const relay = (eventStr, ...args) => send(`view:${eventStr}`, ...args);
 
@@ -224,7 +275,9 @@ function createWindow() {
       relay("did-fail-load", { errorCode, errorDescription, isMainFrame });
     },
   );
-  appWebContents.on("dom-ready", () => relay("dom-ready"));
+  appWebContents.on("dom-ready", () => {
+    relay("dom-ready");
+  });
   appWebContents.on("enter-html-full-screen", () =>
     relay("enter-html-full-screen"),
   );
@@ -299,6 +352,8 @@ function createWindow() {
   if (config.discord.enabled) {
     discord.init(config.discord.appId);
   }
+
+  updateViewBounds();
 }
 
 app.on("web-contents-created", (_, contents) => {
@@ -399,13 +454,19 @@ ipcMain.handle("app:get-config", () => ({
 
 ipcMain.handle("app:get-start-url", () => {
   const saved = settings.get("lastUrl", null);
-  return typeof saved === "string" && isDomainAllowed(saved)
+  return typeof saved === "string" &&
+    isDomainAllowed(saved) &&
+    !isInternalNavigation(saved)
     ? saved
     : config.homeUrl;
 });
 
 ipcMain.handle("app:set-last-url", (_, url) => {
-  if (typeof url === "string" && isDomainAllowed(url)) {
+  if (
+    typeof url === "string" &&
+    isDomainAllowed(url) &&
+    !isInternalNavigation(url)
+  ) {
     settings.set("lastUrl", url);
   }
 });
@@ -434,9 +495,8 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(async () => {
-  try {
-    await components.whenReady();
-  } catch {}
+  configureCrunchyrollSession(session.fromPartition(CR_PARTITION));
+  await ensureWidevine();
   createWindow();
 });
 

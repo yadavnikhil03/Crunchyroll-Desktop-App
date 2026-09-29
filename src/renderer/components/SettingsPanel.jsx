@@ -22,8 +22,8 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     background: "linear-gradient(180deg, #161616 0%, #0a0a0a 100%)",
-    borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
-    boxShadow: "-12px 0 40px rgba(0,0,0,0.9)",
+    borderLeft: "1px solid var(--color-hairline)",
+    boxShadow: "var(--shadow-panel)",
     transition: `transform ${ANIMATION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
     transform: hidden ? "translateX(100%)" : "translateX(0)",
     willChange: "transform",
@@ -33,13 +33,18 @@ const styles = {
     display: "flex",
     alignItems: "center",
     padding: "32px 28px 24px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid var(--color-hairline)",
   },
   headerIcon: {
     width: 44,
     height: 44,
     marginRight: 16,
     flexShrink: 0,
+    borderRadius: "var(--radius-control)",
+    border: "1px solid var(--color-hairline)",
+    background: "var(--color-fill)",
+    padding: 8,
+    boxSizing: "border-box",
   },
   headerIconImg: {
     width: "100%",
@@ -50,15 +55,15 @@ const styles = {
     fontFamily: "var(--font-sans)",
     fontSize: 20,
     fontWeight: 600,
-    color: "#fff",
-    letterSpacing: "0.02em",
+    color: "var(--color-label)",
+    letterSpacing: "var(--cr-track-tight)",
   },
   headerSubtitle: {
     fontFamily: "var(--font-sans)",
     fontSize: 11,
     fontWeight: 600,
     color: "#F47521",
-    letterSpacing: "0.08em",
+    letterSpacing: "var(--cr-track-caps)",
     textTransform: "uppercase",
     marginTop: 4,
   },
@@ -73,23 +78,24 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    color: "#888",
-    transition: "all 0.2s ease",
+    color: "var(--color-secondary)",
+    transition: "background 200ms ease, color 200ms ease",
   },
   body: {
     flex: 1,
     overflowY: "auto",
+    scrollbarGutter: "stable",
   },
   section: {
     padding: "28px 28px 8px",
   },
   sectionLabel: {
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans)",
     fontSize: 11,
-    fontWeight: 700,
-    color: "#666",
+    fontWeight: 600,
+    color: "var(--color-tertiary)",
     textTransform: "uppercase",
-    letterSpacing: "0.15em",
+    letterSpacing: "var(--cr-track-caps)",
     marginBottom: 16,
   },
   row: {
@@ -98,13 +104,14 @@ const styles = {
     width: "100%",
     gap: 14,
     padding: "16px 20px",
-    background: "rgba(255, 255, 255, 0.035)",
-    border: "1px solid rgba(255, 255, 255, 0.06)",
-    borderRadius: 14,
+    background: "var(--color-fill)",
+    border: "1px solid var(--color-hairline)",
+    borderRadius: "var(--radius-row)",
     cursor: "pointer",
-    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+    transition:
+      "background 250ms cubic-bezier(0.16, 1, 0.3, 1), border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1)",
     textAlign: "left",
-    color: "#b0b0b0",
+    color: "var(--color-label)",
     fontSize: 14,
     fontWeight: 500,
   },
@@ -133,7 +140,7 @@ const styles = {
   }),
   footer: {
     padding: "24px 28px",
-    borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+    borderTop: "1px solid var(--color-hairline)",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -149,12 +156,13 @@ const styles = {
     boxShadow: "0 0 8px rgba(244, 117, 33, 0.6)",
   },
   footerText: {
-    fontFamily: "'Montserrat', sans-serif",
+    fontFamily: "var(--font-sans)",
     fontSize: 11,
     fontWeight: 600,
-    letterSpacing: "0.05em",
-    color: "#666",
+    letterSpacing: "var(--cr-track-caps)",
+    color: "var(--color-tertiary)",
     textTransform: "uppercase",
+    fontVariantNumeric: "tabular-nums",
   },
 };
 
@@ -166,20 +174,20 @@ function hoverHandlers(enter, leave) {
 }
 
 const iconHover = hoverHandlers(
-  { background: "rgba(255, 255, 255, 0.08)", color: "#fff" },
-  { background: "transparent", color: "#888" },
+  { background: "var(--color-fill-hover)", color: "#fff" },
+  { background: "transparent", color: "var(--color-secondary)" },
 );
 
 const rowHover = hoverHandlers(
   {
-    background: "rgba(255, 255, 255, 0.06)",
+    background: "var(--color-fill-hover)",
     borderColor: "rgba(244, 117, 33, 0.4)",
     transform: "translateY(-1px)",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+    boxShadow: "var(--shadow-raised)",
   },
   {
-    background: "rgba(255, 255, 255, 0.035)",
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    background: "var(--color-fill)",
+    borderColor: "var(--color-hairline)",
     transform: "translateY(0)",
     boxShadow: "none",
   },
@@ -346,7 +354,7 @@ export default function SettingsPanel({ open, onClose }) {
             <div style={styles.row} {...rowHover}>
               <div
                 style={{
-                  color: hardwareAccel ? "#F47521" : "#666",
+                  color: hardwareAccel ? "#F47521" : "var(--color-secondary)",
                   flexShrink: 0,
                 }}
               >
@@ -357,7 +365,7 @@ export default function SettingsPanel({ open, onClose }) {
                   flex: 1,
                   fontSize: 14,
                   fontWeight: 500,
-                  color: "#fff",
+                  color: "var(--color-label)",
                 }}
               >
                 Hardware Acceleration

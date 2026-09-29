@@ -63,7 +63,13 @@ function normalize(raw) {
 
 const config = normalize(readConfigFile());
 
+function isInternalNavigation(url) {
+  return /^(about:|blob:|data:)/i.test(url);
+}
+
 function isDomainAllowed(url) {
+  if (isInternalNavigation(url)) return true;
+
   let hostname;
   let protocol;
   try {
@@ -79,4 +85,4 @@ function isDomainAllowed(url) {
   );
 }
 
-module.exports = { config, isDomainAllowed };
+module.exports = { config, isDomainAllowed, isInternalNavigation };

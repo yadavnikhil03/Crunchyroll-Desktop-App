@@ -3,7 +3,7 @@
     "appId": "1412040406597636146",
     "enabled": true
   },
-  "hardwareAcceleration": false,
+  "hardwareAcceleration": true,
   "homeUrl": "https://www.crunchyroll.com/",
   "window": {
     "width": 1400,
@@ -17,6 +17,7 @@
     "beta.crunchyroll.com",
     "static.crunchyroll.com",
     "store.crunchyroll.com",
+    "crunchyrollsvc.com",
     "accounts.google.com",
     "ssl.gstatic.com",
     "fonts.googleapis.com",

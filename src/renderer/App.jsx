@@ -10,8 +10,8 @@ const URL_SAVE_DELAY = 1500;
 const SCROLLBAR_CSS = `
   ::-webkit-scrollbar { width: 14px; height: 14px; background: transparent; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; border: 4px solid transparent; background-clip: padding-box; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); border: 4px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 10px; border: 4px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.34); border: 4px solid transparent; background-clip: padding-box; }
   ::-webkit-scrollbar-corner { background: transparent; }
 `;
 
@@ -144,8 +144,10 @@ export default function App() {
   }, [settingsOpen]);
 
   useEffect(() => {
-    window.electronAPI.view.setIsLoading(loading || !!loadError);
-  }, [loading, loadError]);
+    // Only hide the Crunchyroll view for fatal load errors. Hiding it during
+    // the initial splash (or sizing it to 0x0) breaks Widevine on watch pages.
+    window.electronAPI.view.setIsLoading(!!loadError);
+  }, [loadError]);
 
   const retry = useCallback(() => {
     setLoadError(null);
@@ -173,7 +175,7 @@ export default function App() {
                 <div className="absolute w-full h-full border-[3px] border-cr-orange border-t-transparent border-l-transparent rounded-full animate-spin" style={{ animationDuration: '1.2s' }} />
                 <div className="absolute w-10 h-10 bg-cr-orange rounded-full opacity-10 animate-pulse" style={{ filter: 'blur(8px)' }} />
               </div>
-              <span className="text-[#a0a0a0] text-xs font-semibold tracking-[0.25em] uppercase">
+              <span className="text-[#a0a0a0] text-xs font-semibold tracking-[var(--cr-track-eyebrow)] uppercase">
                 Loading Crunchyroll
               </span>
             </div>
@@ -182,23 +184,23 @@ export default function App() {
 
         {loadError && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-b from-[#0f0f13] to-[#16161a]">
-            <div className="flex flex-col items-center gap-5 px-10 py-10 text-center bg-[#1a1a1e]/60 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-2xl transform transition-all">
+            <div className="flex flex-col items-center gap-5 px-10 py-10 text-center cr-glass rounded-[var(--radius-modal)] shadow-[var(--shadow-raised)]">
               <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mb-1">
                 <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-gray-100 text-lg font-semibold tracking-tight">
+                <h3 className="text-gray-100 text-lg font-semibold tracking-[var(--cr-track-tight)] text-balance">
                   Connection Lost
                 </h3>
-                <p className="text-[#888] text-sm max-w-[260px] leading-relaxed">
+                <p className="text-[#888] text-sm max-w-[260px] leading-relaxed text-pretty">
                   {loadError}
                 </p>
               </div>
               <button
                 onClick={retry}
-                className="mt-4 px-8 py-2.5 rounded-full bg-cr-orange hover:bg-[#ff8c3a] text-white text-sm font-semibold tracking-wide transition-all duration-300 hover:shadow-[0_4px_20px_rgba(244,117,33,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                className="mt-4 px-8 py-2.5 rounded-full bg-cr-orange hover:bg-[#ff8c3a] text-white text-sm font-semibold tracking-wide transition-[color,background-color,box-shadow,transform] duration-300 hover:shadow-[var(--shadow-accent)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
               >
                 Try Again
               </button>
