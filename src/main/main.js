@@ -13,6 +13,13 @@ const { config, isDomainAllowed, isInternalNavigation } = require("./config");
 const settings = require("./settings");
 const discord = require("./discord");
 
+let autoUpdater = null;
+try {
+  autoUpdater = require("electron-updater").autoUpdater;
+} catch {
+  // electron-updater may not be available in dev
+}
+
 const BOUNDS_SAVE_DELAY = 400;
 const CR_PARTITION = "persist:crunchyroll";
 const DRM_PERMISSIONS = new Set(["media", "mediaKeySystem", "fullscreen"]);
@@ -36,6 +43,7 @@ let boundsTimer = null;
 let isQuitting = false;
 let settingsOpen = false;
 let isLoading = false;
+let discordEnabled = false;
 
 
 const hardwareAccelEnabled = settings.get("hardwareAcceleration", config.hardwareAcceleration);
@@ -241,19 +249,68 @@ function createWindow() {
   appWebContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
     const history = appWebContents.navigationHistory;
+    const key = input.key;
+    const keyLower = key.toLowerCase();
 
-    if (input.alt && input.key === "ArrowLeft") {
+    // Navigation: Alt+Left / Alt+Right
+    if (input.alt && key === "ArrowLeft") {
       if (history.canGoBack()) history.goBack();
       event.preventDefault();
-    } else if (input.alt && input.key === "ArrowRight") {
+    } else if (input.alt && key === "ArrowRight") {
       if (history.canGoForward()) history.goForward();
       event.preventDefault();
-    } else if (
-      input.key === "F5" ||
-      (input.control && input.key.toLowerCase() === "r")
-    ) {
+    }
+    // Reload: F5 / Ctrl+R
+    else if (key === "F5" || (input.control && keyLower === "r")) {
       appWebContents.reload();
       event.preventDefault();
+    }
+    // Fullscreen: F11
+    else if (key === "F11") {
+      if (mainWindow) mainWindow.setFullScreen(!mainWindow.isFullScreen());
+      event.preventDefault();
+    }
+    // Zoom: Ctrl+Plus / Ctrl+Minus / Ctrl+0
+    else if (input.control && (key === "=" || key === "+")) {
+      const current = appWebContents.getZoomLevel();
+      appWebContents.setZoomLevel(Math.min(current + 0.5, 5));
+      event.preventDefault();
+    } else if (input.control && key === "-") {
+      const current = appWebContents.getZoomLevel();
+      appWebContents.setZoomLevel(Math.max(current - 0.5, -5));
+      event.preventDefault();
+    } else if (input.control && key === "0") {
+      appWebContents.setZoomLevel(0);
+      event.preventDefault();
+    }
+    // Home: Ctrl+Home
+    else if (input.control && key === "Home") {
+      appWebContents.loadURL(config.homeUrl);
+      event.preventDefault();
+    }
+    else if (!input.control && !input.alt && !input.meta) {
+      const isMediaKey = [" ", "f", "m", "arrowleft", "arrowright", "arrowup", "arrowdown"].includes(keyLower);
+      if (isMediaKey) {
+        appWebContents.executeJavaScript(`
+          (function() {
+            if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return false;
+            const video = document.querySelector('video');
+            if (!video) return false;
+            
+            switch('${keyLower}') {
+              case ' ': video.paused ? video.play() : video.pause(); return true;
+              case 'f': document.fullscreenElement ? document.exitFullscreen() : video.requestFullscreen(); return true;
+              case 'm': video.muted = !video.muted; return true;
+              case 'arrowleft': video.currentTime = Math.max(0, video.currentTime - 10); return true;
+              case 'arrowright': video.currentTime = Math.min(video.duration || 0, video.currentTime + 10); return true;
+              case 'arrowup': video.volume = Math.min(1, video.volume + 0.1); return true;
+              case 'arrowdown': video.volume = Math.max(0, video.volume - 0.1); return true;
+            }
+            return false;
+          })();
+        `).then((handled) => {
+        }).catch(() => {});
+      }
     }
   });
 
@@ -349,7 +406,8 @@ function createWindow() {
     appWebContents = null;
   });
 
-  if (config.discord.enabled) {
+  discordEnabled = settings.get("discordEnabled", config.discord.enabled);
+  if (discordEnabled && config.discord.appId) {
     discord.init(config.discord.appId);
   }
 
@@ -450,15 +508,20 @@ ipcMain.handle("app:get-config", () => ({
   homeUrl: config.homeUrl,
   version: app.getVersion(),
   discordEnabled: config.discord.enabled,
+  discordConfigured: !!(config.discord.appId),
 }));
 
 ipcMain.handle("app:get-start-url", () => {
-  const saved = settings.get("lastUrl", null);
-  return typeof saved === "string" &&
-    isDomainAllowed(saved) &&
-    !isInternalNavigation(saved)
-    ? saved
-    : config.homeUrl;
+  const resume = settings.get("resumeSession", false);
+  if (resume) {
+    const saved = settings.get("lastUrl", null);
+    return typeof saved === "string" &&
+      isDomainAllowed(saved) &&
+      !isInternalNavigation(saved)
+      ? saved
+      : config.homeUrl;
+  }
+  return config.homeUrl;
 });
 
 ipcMain.handle("app:set-last-url", (_, url) => {
@@ -472,7 +535,34 @@ ipcMain.handle("app:set-last-url", (_, url) => {
 });
 
 ipcMain.handle("discord:update", (_, activity) => {
-  discord.updatePresence(activity);
+  if (discordEnabled) discord.updatePresence(activity);
+});
+
+ipcMain.handle("discord:get-enabled", () => {
+  return settings.get("discordEnabled", config.discord.enabled);
+});
+
+ipcMain.handle("discord:set-enabled", async (_, enabled) => {
+  const wasEnabled = discordEnabled;
+  discordEnabled = enabled === true;
+  settings.set("discordEnabled", discordEnabled);
+
+  if (discordEnabled && !wasEnabled && config.discord.appId) {
+    discord.init(config.discord.appId);
+  } else if (!discordEnabled && wasEnabled) {
+    await discord.shutdown();
+  }
+});
+
+ipcMain.handle("cache:clear", async () => {
+  try {
+    const ses = session.fromPartition(CR_PARTITION);
+    await ses.clearStorageData();
+    await ses.clearCache();
+    return true;
+  } catch {
+    return false;
+  }
 });
 
 ipcMain.handle("shell:open-external", (_, url) => {
@@ -488,6 +578,56 @@ ipcMain.handle("shell:open-external", (_, url) => {
   }
 });
 
+let updateCheckPromise = null;
+
+function checkForUpdates(manual = false) {
+  if (!autoUpdater) return Promise.resolve({ status: "unavailable" });
+
+  if (updateCheckPromise) return updateCheckPromise;
+
+  updateCheckPromise = new Promise((resolve) => {
+    const onUpdateAvailable = () => {
+      cleanup();
+      autoUpdater.downloadUpdate();
+      resolve({ status: "available" });
+    };
+    const onUpdateNotAvailable = () => {
+      cleanup();
+      resolve({ status: "up-to-date" });
+    };
+    const onError = (err) => {
+      cleanup();
+      resolve({ status: "error", error: err.message });
+    };
+
+    const cleanup = () => {
+      autoUpdater.off("update-available", onUpdateAvailable);
+      autoUpdater.off("update-not-available", onUpdateNotAvailable);
+      autoUpdater.off("error", onError);
+      updateCheckPromise = null;
+    };
+
+    autoUpdater.once("update-available", onUpdateAvailable);
+    autoUpdater.once("update-not-available", onUpdateNotAvailable);
+    autoUpdater.once("error", onError);
+
+    try {
+      if (manual) {
+        autoUpdater.checkForUpdates();
+      } else {
+        autoUpdater.checkForUpdatesAndNotify();
+      }
+    } catch (err) {
+      cleanup();
+      resolve({ status: "error", error: err.message });
+    }
+  });
+
+  return updateCheckPromise;
+}
+
+ipcMain.handle("app:check-for-updates", () => checkForUpdates(true));
+
 app.on("second-instance", () => {
   if (!mainWindow) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
@@ -498,6 +638,7 @@ app.whenReady().then(async () => {
   configureCrunchyrollSession(session.fromPartition(CR_PARTITION));
   await ensureWidevine();
   createWindow();
+  checkForUpdates();
 });
 
 app.on("before-quit", async (event) => {
