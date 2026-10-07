@@ -17,11 +17,7 @@ let autoUpdater = null;
 try {
   autoUpdater = require("electron-updater").autoUpdater;
 } catch {
-<<<<<<< HEAD
-
-=======
   // electron-updater may not be available in dev
->>>>>>> daa1b023f2d1fca2f810e867a3ed03a893939ac8
 }
 
 const BOUNDS_SAVE_DELAY = 400;
