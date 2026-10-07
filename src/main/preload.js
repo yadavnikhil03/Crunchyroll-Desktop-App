@@ -24,9 +24,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getConfig: () => ipcRenderer.invoke("app:get-config"),
     getStartUrl: () => ipcRenderer.invoke("app:get-start-url"),
     setLastUrl: (url) => ipcRenderer.invoke("app:set-last-url", url),
+    checkForUpdates: () => ipcRenderer.invoke("app:check-for-updates"),
   },
   discord: {
     update: (activity) => ipcRenderer.invoke("discord:update", activity),
+    getEnabled: () => ipcRenderer.invoke("discord:get-enabled"),
+    setEnabled: (enabled) => ipcRenderer.invoke("discord:set-enabled", enabled),
+  },
+  cache: {
+    clear: () => ipcRenderer.invoke("cache:clear"),
   },
   shell: {
     openExternal: (url) => ipcRenderer.invoke("shell:open-external", url),
